@@ -5,37 +5,57 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"runtime"
+	"strings"
 )
+
+const zipsPath = "/zips/"
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 	w.Header().Add("Content-Type", "text/plain")
-	//w.Write([]byte("Hello, World!"))
-	w.Header().Add("Access-Control-Allow-Origin", "*")
-	fmt.Fprintf(w, "Hello %s!", name)
 
+	fmt.Fprintf(w, "Hello %s!", name)
 }
 
 func memoryHandler(w http.ResponseWriter, r *http.Request) {
-
 	runtime.GC()
-
-	// & means we want pointer not the instance
 	stats := &runtime.MemStats{}
 	runtime.ReadMemStats(stats)
+	w.Header().Add("Access-Control-Allow-Origin", "*")
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stats)
-
 }
 
 func main() {
-	//fmt.Println("Hello, World!")
+	addr := os.Getenv("ADDR")
+	if len(addr) == 0 {
+		addr = ":80"
+	}
+	zips, err := models.LoadZips("zips.csv")
+	if err != nil {
+		log.Fatalf("error loading zips: %v", err)
+	}
+	log.Printf("loaded %d zips", len(zips))
+
+	cityIndex := models.ZipIndex{}
+	for _, z := range zips {
+		cityLower := strings.ToLower(z.City)
+		cityIndex[cityLower] = append(cityIndex[cityLower], z)
+	}
+
+	//fmt.Println("Hello World!")
 	mux := http.NewServeMux()
-	// if "/hello" <- must be "hello". "/hello/" includes "/hello/foo"
 	mux.HandleFunc("/hello", helloHandler)
 	mux.HandleFunc("/memory", memoryHandler)
-	fmt.Printf("server is listening at http://localhost:4000\n")
-	log.Fatal(http.ListenAndServe("localhost:4000", mux))
 
+	cityHandler := &handlers.CityHandler{
+		Index:      cityIndex,
+		PathPrefix: zipsPath,
+	}
+	mux.Handle(zipsPath, cityHandler)
+
+	fmt.Printf("server is listening at http://%s\n", addr)
+	log.Fatal(http.ListenAndServe(addr, mux))
 }

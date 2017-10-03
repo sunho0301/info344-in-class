@@ -1,0 +1,6 @@
+go install && zipsvr
+
+export ADDR=localhost:4000
+
+
+array in go 
