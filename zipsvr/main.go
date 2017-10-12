@@ -3,13 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"info344-in-class/zipsvr/handlers"
-	"info344-in-class/zipsvr/models"
 	"log"
 	"net/http"
 	"os"
 	"runtime"
 	"strings"
+
+	"github.com/sunho0301/info344-in-class/zipsvr/handlers"
+	"github.com/sunho0301/info344-in-class/zipsvr/models"
 )
 
 const zipsPath = "/zips/"
